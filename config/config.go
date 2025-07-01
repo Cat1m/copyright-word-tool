@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"path/filepath"
 
@@ -36,26 +37,36 @@ func LoadConfig() *Config {
 
 // ✅ Hàm mới: Load .env file
 func LoadEnv() error {
-	// Tìm .env file từ current directory
+	// Debug: Kiểm tra current working directory
+	pwd, _ := os.Getwd()
+	fmt.Printf("🔍 Current working directory: %s\n", pwd)
+
 	envPath := ".env"
-	if _, err := os.Stat(envPath); os.IsNotExist(err) {
-		// Nếu không có .env, thử tìm ở parent directories
-		for i := 0; i < 3; i++ { // Tìm tối đa 3 level lên
-			envPath = filepath.Join("..", envPath)
-			if _, err := os.Stat(envPath); err == nil {
-				break
+	fmt.Printf("🔍 Looking for .env at: %s\n", filepath.Join(pwd, envPath))
+
+	// Đọc file .env và loại bỏ BOM nếu có
+	if data, err := os.ReadFile(envPath); err == nil {
+		// Loại bỏ UTF-8 BOM nếu có
+		content := string(data)
+		if strings.HasPrefix(content, "\ufeff") {
+			content = strings.TrimPrefix(content, "\ufeff")
+			fmt.Printf("🔧 Removed UTF-8 BOM from .env file\n")
+		}
+
+		// Tạo file tạm không có BOM
+		tempFile := ".env.tmp"
+		if err := os.WriteFile(tempFile, []byte(content), 0644); err == nil {
+			defer os.Remove(tempFile) // Xóa file tạm sau khi dùng
+
+			// Load file tạm
+			if err := godotenv.Load(tempFile); err == nil {
+				fmt.Printf("✅ Loaded .env file successfully\n")
+				return nil
 			}
 		}
 	}
 
-	// Load .env file (không báo lỗi nếu không tìm thấy)
-	err := godotenv.Load(envPath)
-	if err != nil {
-		fmt.Printf("💡 .env file not found at %s, using system environment variables\n", envPath)
-	} else {
-		fmt.Printf("✅ Loaded .env file from %s\n", envPath)
-	}
-
+	fmt.Printf("💡 .env file not found or couldn't load, using system environment variables\n")
 	return nil
 }
 
