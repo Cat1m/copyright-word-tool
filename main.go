@@ -1,3 +1,4 @@
+// main.go - Enhanced version with file exclusion support
 package main
 
 import (
@@ -31,6 +32,11 @@ func main() {
 	// Load configuration
 	cfg := config.LoadConfig()
 
+	// ✅ Xử lý arguments để thêm exclude files (nếu có)
+	if len(os.Args) > 2 {
+		handleAdditionalArgs(cfg, os.Args[2:])
+	}
+
 	// Initialize components
 	fileProcessor := fileprocessor.New(cfg)
 	docGenerator := generator.New(cfg)
@@ -59,35 +65,64 @@ func main() {
 	printFooter()
 }
 
+// ✅ Xử lý arguments để thêm exclude files
+func handleAdditionalArgs(cfg *config.Config, args []string) {
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "--exclude=") {
+			filename := strings.TrimPrefix(arg, "--exclude=")
+			cfg.AddExcludeFile(filename)
+			fmt.Printf("🚫 Added to exclude list: %s\n", filename)
+		} else if strings.HasPrefix(arg, "--exclude-pattern=") {
+			pattern := strings.TrimPrefix(arg, "--exclude-pattern=")
+			cfg.AddExcludePattern(pattern)
+			fmt.Printf("🚫 Added exclude pattern: *%s*\n", pattern)
+		}
+	}
+}
+
 func printUsage() {
-	fmt.Println("📝 Go Code to Word - Optimized (v2.0)")
+	fmt.Println("📝 Go Code to Word - Optimized with File Exclusion (v2.1)")
 	fmt.Println("")
-	fmt.Println("Usage: go run main.go <directory_path>")
+	fmt.Println("Usage: go run main.go <directory_path> [options]")
 	fmt.Println("Example: go run main.go ./src")
 	fmt.Println("")
-	fmt.Println("Supported file types:")
+	fmt.Println("📂 Supported file types:")
 	fmt.Println("  ✅ .cs (C#)")
 	fmt.Println("  ✅ .dart (Dart)")
 	fmt.Println("")
-	fmt.Println("Setup API Key (choose one):")
-	fmt.Println("  🔑 Environment variable:")
+	fmt.Println("🚫 File Exclusion Options:")
+	fmt.Println("  --exclude=filename          Exclude specific file (e.g., --exclude=program.cs)")
+	fmt.Println("  --exclude-pattern=pattern   Exclude files containing pattern")
+	fmt.Println("")
+	fmt.Println("  Examples:")
+	fmt.Println("    go run main.go ./src --exclude=program.cs --exclude=database.cs")
+	fmt.Println("    go run main.go ./src --exclude-pattern=secret --exclude-pattern=config")
+	fmt.Println("")
+	fmt.Println("🚫 Default excluded files:")
+	fmt.Println("  📄 Exact files: program.cs, appsettings.json, database.cs, secrets.cs...")
+	fmt.Println("  🔍 Patterns: secret, password, apikey, config, setting, credential...")
+	fmt.Println("")
+	fmt.Println("🔑 Setup API Key (choose one):")
+	fmt.Println("  📄 Create .env file:")
+	fmt.Println("     UNIDOC_LICENSE_API_KEY=your_key")
+	fmt.Println("")
+	fmt.Println("  🌍 Environment variable:")
 	fmt.Println("     Windows PS: $env:UNIDOC_LICENSE_API_KEY=\"your_key\"")
 	fmt.Println("     Windows CMD: set UNIDOC_LICENSE_API_KEY=your_key")
 	fmt.Println("     Linux/Mac: export UNIDOC_LICENSE_API_KEY=your_key")
-	fmt.Println("")
-	fmt.Println("  📄 Or create .env file:")
-	fmt.Println("     UNIDOC_LICENSE_API_KEY=your_key")
 	fmt.Println("")
 	fmt.Println("  🆓 Register free: https://cloud.unidoc.io")
 }
 
 func printHeader(rootDir string, cfg *config.Config) {
-	fmt.Printf("🚀 Creating optimized Word document for copyright registration (v2.0)...\n")
+	fmt.Printf("🚀 Creating optimized Word document with file exclusion (v2.1)...\n")
 	fmt.Printf("📁 Source directory: %s\n", rootDir)
 	fmt.Printf("📝 Processing: .cs (C#) and .dart (Dart)\n")
 	fmt.Printf("📖 Optimization: %d lines/page, page break threshold: %d lines\n",
 		cfg.LinesPerPage, cfg.MinLinesForPageBreak)
-	fmt.Printf("💡 Features: Compact header + minimal separator + smart page break\n")
+	fmt.Printf("🚫 File exclusion: enabled (%d files, %d patterns)\n",
+		len(cfg.ExcludeFiles), len(cfg.ExcludePatterns))
+	fmt.Printf("💡 Features: Compact header + minimal separator + smart page break + sensitive file filtering\n")
 	fmt.Println(strings.Repeat("=", 70))
 }
 
@@ -95,5 +130,6 @@ func printFooter() {
 	fmt.Println(strings.Repeat("=", 70))
 	fmt.Printf("✨ Completed! Check 'copyright_documents' directory\n")
 	fmt.Printf("💡 Word files have been optimized - saves 40-60%% paper!\n")
-	fmt.Printf("🎯 Smart page break has been applied\n")
+	fmt.Printf("🎯 Smart page break and sensitive file filtering applied\n")
+	fmt.Printf("🔒 Sensitive files (config, secrets, etc.) were automatically excluded\n")
 }

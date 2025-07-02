@@ -1,3 +1,4 @@
+// processor.go - Enhanced version with file exclusion
 package fileprocessor
 
 import (
@@ -13,19 +14,26 @@ import (
 )
 
 type FileProcessor struct {
-	config *config.Config
-	files  []models.CodeFile
+	config        *config.Config
+	files         []models.CodeFile
+	excludedCount int // ✅ Đếm số file bị exclude
 }
 
 func New(cfg *config.Config) *FileProcessor {
 	return &FileProcessor{
-		config: cfg,
-		files:  make([]models.CodeFile, 0),
+		config:        cfg,
+		files:         make([]models.CodeFile, 0),
+		excludedCount: 0,
 	}
 }
 
 func (fp *FileProcessor) ScanDirectory(rootDir string) ([]models.CodeFile, error) {
 	fmt.Printf("🔍 Scanning for .cs and .dart files in: %s\n", rootDir)
+
+	// ✅ In danh sách exclude để user biết
+	fmt.Printf("🚫 File exclusion is enabled:\n")
+	fp.config.PrintExcludeList()
+	fmt.Println(strings.Repeat("-", 50))
 
 	err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -48,6 +56,9 @@ func (fp *FileProcessor) ScanDirectory(rootDir string) ([]models.CodeFile, error
 		return fp.files[i].FileName < fp.files[j].FileName
 	})
 
+	// ✅ In thống kê
+	fp.printScanSummary()
+
 	return fp.files, nil
 }
 
@@ -67,14 +78,24 @@ func (fp *FileProcessor) handleDirectory(d fs.DirEntry) error {
 
 func (fp *FileProcessor) handleFile(path string) error {
 	ext := strings.ToLower(filepath.Ext(path))
+	filename := filepath.Base(path)
+
+	// ✅ Kiểm tra extension được hỗ trợ
 	if !fp.config.SupportedExtensions[ext] {
+		return nil
+	}
+
+	// ✅ Kiểm tra file có bị exclude không
+	if fp.config.IsFileExcluded(filename) {
+		fmt.Printf("🚫 Excluded: %s (sensitive file)\n", filename)
+		fp.excludedCount++
 		return nil
 	}
 
 	if err := fp.processFile(path, ext); err != nil {
 		fmt.Printf("❌ Error processing %s: %v\n", path, err)
 	} else {
-		fmt.Printf("📄 Added: %s\n", filepath.Base(path))
+		fmt.Printf("📄 Added: %s\n", filename)
 	}
 
 	return nil
@@ -122,4 +143,22 @@ func (fp *FileProcessor) processFile(filePath, ext string) error {
 	})
 
 	return nil
+}
+
+// ✅ Hàm in thống kê scan
+func (fp *FileProcessor) printScanSummary() {
+	fmt.Println(strings.Repeat("-", 50))
+	fmt.Printf("📊 Scan Summary:\n")
+	fmt.Printf("   ✅ Files included: %d\n", len(fp.files))
+	fmt.Printf("   🚫 Files excluded: %d\n", fp.excludedCount)
+	fmt.Printf("   📁 Total processed: %d\n", len(fp.files)+fp.excludedCount)
+
+	if len(fp.files) > 0 {
+		fmt.Printf("📋 Included files:\n")
+		for _, file := range fp.files {
+			fmt.Printf("   - %s (%d lines)\n", file.FileName, len(file.Lines))
+		}
+	}
+
+	fmt.Println(strings.Repeat("=", 70))
 }
