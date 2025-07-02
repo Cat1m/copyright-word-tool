@@ -105,6 +105,52 @@ func (dg *DocumentGenerator) setupPage(doc *document.Document) {
 		measurement.Distance(297)*measurement.Millimeter,
 		wml.ST_PageOrientationPortrait,
 	)
+
+	// Thêm dòng này để có số trang ở góc phải
+	dg.addPageNumberFooter(doc, section)
+}
+
+// Hàm mới để thêm footer với số trang ở góc phải
+func (dg *DocumentGenerator) addPageNumberFooter(doc *document.Document, section document.Section) {
+	// Tạo footer
+	footer := doc.AddFooter()
+
+	// Tạo paragraph trong footer
+	footerPara := footer.AddParagraph()
+
+	// Căn phải
+	footerPara.Properties().SetAlignment(wml.ST_JcRight)
+
+	// Thêm text "Trang "
+	pageTextRun := footerPara.AddRun()
+	pageTextRun.AddText("Trang ")
+	pageTextRun.Properties().SetFontFamily("Arial")
+	pageTextRun.Properties().SetSize(10)
+	pageTextRun.Properties().SetColor(color.Gray)
+
+	// Thêm số trang hiện tại
+	pageNumRun := footerPara.AddRun()
+	pageNumRun.AddFieldWithFormatting(document.FieldCurrentPage, "", false)
+	pageNumRun.Properties().SetFontFamily("Arial")
+	pageNumRun.Properties().SetSize(10)
+	pageNumRun.Properties().SetColor(color.Gray)
+
+	// Thêm text " / "
+	separatorRun := footerPara.AddRun()
+	separatorRun.AddText(" / ")
+	separatorRun.Properties().SetFontFamily("Arial")
+	separatorRun.Properties().SetSize(10)
+	separatorRun.Properties().SetColor(color.Gray)
+
+	// Thêm tổng số trang
+	totalPagesRun := footerPara.AddRun()
+	totalPagesRun.AddFieldWithFormatting(document.FieldNumberOfPages, "", false)
+	totalPagesRun.Properties().SetFontFamily("Arial")
+	totalPagesRun.Properties().SetSize(10)
+	totalPagesRun.Properties().SetColor(color.Gray)
+
+	// Gán footer cho section
+	section.SetFooter(footer, wml.ST_HdrFtrDefault)
 }
 
 func (dg *DocumentGenerator) addAllFiles(doc *document.Document, files []models.CodeFile) {
