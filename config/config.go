@@ -52,6 +52,7 @@ func LoadConfig() *Config {
 			"APIKeyCheckAttribute.cs": true,
 			"AppController.cs":        true,
 			"Enum.cs":                 true,
+			"Service.cs":              true,
 		},
 		// ✅ Patterns cần loại bỏ (contains match)
 		ExcludePatterns: []string{
@@ -62,8 +63,23 @@ func LoadConfig() *Config {
 			"setting",    // Settings files
 			"credential", // Credentials
 			"token",      // Token files
-			"env",
-			"passcode", // Environment files
+			"env",        // Environment files
+			"passcode",   // Passcode files
+			// ✅ Generated files patterns
+			".g.dart",       // Generated files từ build_runner (json_serializable, etc.)
+			".freezed.dart", // Generated files từ freezed package
+			".gr.dart",      // Generated files từ auto_route
+			".config.dart",  // Generated config files
+			".part.dart",    // Part files (thường là generated)
+			"Service.cs",
+			"AppController.cs",
+			"BIDV",
+			"Bank",
+			"VietinBank",
+			"Viettel",
+			"172.16.28",
+			"ip",
+			"key",
 		},
 	}
 }
@@ -78,9 +94,23 @@ func (c *Config) IsFileExcluded(filename string) bool {
 		return true
 	}
 
-	// 2. Kiểm tra patterns
+	// 2. Kiểm tra patterns (contains match)
 	for _, pattern := range c.ExcludePatterns {
 		if strings.Contains(lowerFilename, strings.ToLower(pattern)) {
+			return true
+		}
+	}
+
+	// 3. ✅ Thêm kiểm tra suffix cho generated files (để chắc chắn)
+	generatedSuffixes := []string{
+		".g.dart",
+		".freezed.dart",
+		".gr.dart",
+		".config.dart",
+	}
+
+	for _, suffix := range generatedSuffixes {
+		if strings.HasSuffix(lowerFilename, suffix) {
 			return true
 		}
 	}
@@ -109,6 +139,12 @@ func (c *Config) PrintExcludeList() {
 	for _, pattern := range c.ExcludePatterns {
 		fmt.Printf("   - *%s*\n", pattern)
 	}
+
+	fmt.Printf("🚫 Generated file suffixes will also be excluded:\n")
+	fmt.Printf("   - *.g.dart\n")
+	fmt.Printf("   - *.freezed.dart\n")
+	fmt.Printf("   - *.gr.dart\n")
+	fmt.Printf("   - *.config.dart\n")
 }
 
 // Các hàm khác giữ nguyên...
